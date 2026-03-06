@@ -1,0 +1,30 @@
+name: Validate Patterns JSON
+on:
+  push:
+    paths: ['public/patterns.json']
+  pull_request:
+    paths: ['public/patterns.json']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON syntax
+        run: python3 -c "import json; json.load(open('public/patterns.json'))"
+      - name: Validate structure
+        run: |
+          python3 -c "
+          import json
+          data = json.load(open('public/patterns.json'))
+          assert 'patterns' in data, 'Missing patterns array'
+          assert 'keywords' in data, 'Missing keywords array'
+          assert isinstance(data['patterns'], list), 'patterns must be an array'
+          assert isinstance(data['keywords'], list), 'keywords must be an array'
+          for p in data['patterns']:
+              assert 'phrase' in p, f'Pattern missing phrase: {p}'
+              assert 'category' in p, f'Pattern missing category: {p}'
+              assert 'severity_weight' in p, f'Pattern missing severity_weight: {p}'
+              assert 1 <= p['severity_weight'] <= 10, f'Invalid weight: {p}'
+          print(f'\u2713 Valid: {len(data[\"patterns\"])} patterns, {len(data[\"keywords\"])} keywords')
+          "
